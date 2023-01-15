@@ -1,0 +1,61 @@
+#!/bin/bash
+
+function print_usage() {
+    echo "Usage: $0 [-d] [-h] -f <assembly file>"
+    echo "Options:"
+    echo "  -d   Remove the output file after execution"
+    echo "  -h   Show this help message"
+    echo "  -f   Assembly file to be compiled"
+}
+
+# check if there was nothing passed, print usage if true
+if [[ $# -eq 0 ]]; then
+    print_usage
+    exit 1
+fi
+
+# parse commands
+while getopts ":f:hd" opt; do
+    case $opt in
+    f)
+        ff=true
+        fn=$(echo $OPTARG | cut -f1 -d '.')
+        ;;
+    d)
+        remove_output=true
+        ;;
+    h)
+        print_usage
+        exit 0
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    esac
+done
+
+# Check if the -f flag is there, if not or there is no file specified, print usage
+if [[ $ff -ne true ]] || [ -z "$fn" ]; then
+    print_usage
+    exit 0
+fi
+
+# command to assemble file
+nasm -f elf64 -o "$fn.o" "$fn.asm" && ld -m elf_x86_64 -o "$fn" "$fn.o" && "./$fn"
+
+# check if exit code is not zero, print it if true
+exit_code=$?
+if [[ $exit_code -ne 0 ]]; then
+    echo "Exit Code: $exit_code"
+fi
+
+rm "$fn.o"
+
+if [[ $remove_output ]]; then
+    rm "$fn"
+else
+    # move the output file to the Builds directory
+    mkdir -p Builds
+    mv "$fn" Builds/
+fi
