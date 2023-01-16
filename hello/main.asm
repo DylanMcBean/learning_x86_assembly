@@ -1,4 +1,4 @@
-; File-Name: hello.asm
+; File-Name: main.asm
 ; Author: Dylan Mcbean
 ; Date: 15/01/2023
 ; Type: 64-bit
