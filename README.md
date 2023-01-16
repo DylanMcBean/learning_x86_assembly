@@ -29,10 +29,6 @@ This reposiroty contains a collection of asembly language programs to help me le
 
 this would assemble and link the main.asm file in the `Hello World` folder and execute it. the output binary file will be stored in the **Builds** folder aslong as the `-d` flag is not passed.
 
-## Aditional Information
-
-- Make sure to check the README.md file inside each program's folder for more information about that specific program.
-
 ### License
 
 - This program is licensed under the MIT License. See the LICENSE file for details.
