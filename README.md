@@ -1,6 +1,6 @@
 # Assembly(x64) Language Programs
 
-This reposiroty contains a collection of asembly language programs to help me learn assembly, it also has scripts for assembling, linking and executing the programs.
+This repository contains a collection of asembly language programs to help me learn assembly, it also has scripts for assembling, linking and executing the programs.
 
 ## File Structure
 
