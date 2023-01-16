@@ -1,5 +1,5 @@
 ; File-Name: main.asm
-; Author: Dylan Mcbean
+; Author: Dylan McBean
 ; Date: 15/01/2023
 ; Type: 64-bit
 
