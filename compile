@@ -1,21 +1,22 @@
 #!/bin/bash
 
 function print_usage() {
-    echo "Usage: $0 [-d] [-h] -f <folder name>"
+    echo "Usage: $0 [-d] [-h] [-i] -f <folder name>"
     echo "Options:"
     echo "  -d   Remove the output file after execution"
     echo "  -h   Show this help message"
+    echo "  -i   Include local directory"
     echo "  -f   Folder name containing the assembly file to be compiled"
 }
 
-# check if there was nothing passed, print usage if true
+# check if no arguments were passed
 if [[ $# -eq 0 ]]; then
     print_usage
     exit 1
 fi
 
-# parse commands
-while getopts ":f:hd" opt; do
+# parse command-line options
+while getopts ":f:dhi" opt; do
     case $opt in
     f)
         ff=true
@@ -23,6 +24,9 @@ while getopts ":f:hd" opt; do
         ;;
     d)
         remove_output=true
+        ;;
+    i)
+        local_include=true
         ;;
     h)
         print_usage
@@ -35,33 +39,45 @@ while getopts ":f:hd" opt; do
     esac
 done
 
-# Check if the -f flag is there, if not or there is no file specified, print usage
-if [[ $ff -ne true ]] || [ -z "$fn" ]; then
+# Check if the -f flag is there, if not or if no folder was specified, print usage
+if [[ $ff != true ]] || [ -z "$fn" ]; then
     print_usage
-    exit 0
-fi
-
-# check if the specified folder exists, if not, print usage
-if [ ! -d "$fn" ]; then
-    echo "Error: $fn is not a valid directory"
     exit 1
 fi
 
-# command to assemble file
-nasm -f elf64 -o "$fn/$fn.o" "$fn/main.asm" && ld -m elf_x86_64 -o "$fn/$fn" "$fn/$fn.o" && "$fn/$fn"
+# check if the specified folder exists
+if [ ! -d "$fn" ]; then
+    echo "Error: \"$fn\" is not a valid directory"
+    exit 1
+fi
 
-# check if exit code is not zero, print it if true
+# Determine include directory
+if [[ $local_include ]]; then
+    li="$fn/"
+else
+    li="Libraries/Text/"
+fi
+
+# Command to assemble and link the file
+nasm -f elf64 -I "$li" -o "$fn/$fn.o" "$fn/main.asm" && ld -m elf_x86_64 -o "$fn/$fn" "$fn/$fn.o" && "$fn/$fn"
+
+# Capture the exit code of the compiled program
 exit_code=$?
 if [[ $exit_code -ne 0 ]]; then
     echo "Exit Code: $exit_code"
 fi
 
-rm "$fn/$fn.o"
+# Cleanup object file
+if [[ -f "$fn/$fn.o" ]]; then
+    rm "$fn/$fn.o"
+fi
 
-if [[ $remove_output ]]; then
-    rm "$fn/$fn"
-else
-    # move the output file to the Builds directory
-    mkdir -p Builds
-    mv "$fn/$fn" Builds/
+# Handle output binary
+if [[ -f "$fn/$fn" ]]; then
+    if [[ $remove_output ]]; then
+        rm "$fn/$fn"
+    else
+        mkdir -p Build
+        mv "$fn/$fn" Build/
+    fi
 fi
