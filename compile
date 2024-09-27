@@ -1,83 +1,168 @@
 #!/bin/bash
 
+# Function to display usage information
 function print_usage() {
-    echo "Usage: $0 [-d] [-h] [-i] -f <folder name>"
+    echo "Usage: $0 [-d] [-h] [-i] [-g] [-t] [-r] [-v] [-s] [-o <output dir>] -f <folder name>"
     echo "Options:"
     echo "  -d   Remove the output file after execution"
     echo "  -h   Show this help message"
-    echo "  -i   Include local directory"
+    echo "  -i   Include local directory in search path"
+    echo "  -g   Compile with debugging information"
+    echo "  -t   Run the compiled program with strace, if auto-run is enabled; takes precedence over GDB if both are enabled"
+    echo "  -r   Run the compiled program automatically, if debugging; will run with GDB"
+    echo "  -v   Enable verbose mode"
+    echo "  -s   Optimize the output file size"
+    echo "  -o   Specify custom output directory"
     echo "  -f   Folder name containing the assembly file to be compiled"
 }
 
-# check if no arguments were passed
-if [[ $# -eq 0 ]]; then
-    print_usage
-    exit 1
-fi
+# Function to check if required tools are installed
+function check_required_tools() {
+    for tool in nasm ld gdb strace; do
+        if ! command -v $tool &> /dev/null; then
+            echo "Error: $tool is not installed." >&2
+            exit 1
+        fi
+    done
+}
 
-# parse command-line options
-while getopts ":f:dhi" opt; do
-    case $opt in
-    f)
-        ff=true
-        fn=$OPTARG
-        ;;
-    d)
-        remove_output=true
-        ;;
-    i)
-        local_include=true
-        ;;
-    h)
+# Function to parse command-line options
+function parse_options() {
+    while getopts ":f:dhirgtvso:" opt; do
+        case $opt in
+            f) folder_name=$OPTARG ;;
+            d) remove_output=true ;;
+            i) local_include=true ;;
+            r) auto_run=true ;;
+            g) debug=true ;;
+            t) run_strace=true ;;
+            v) verbose=true ;;
+            s) optimize_size=true ;;
+            o) output_dir=$OPTARG ;;
+            h)
+                print_usage
+                exit 0
+                ;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    # Check for mandatory option -f
+    if [[ -z "$folder_name" ]]; then
+        echo "Error: Option -f is required."
         print_usage
-        exit 0
-        ;;
-    \?)
-        echo "Invalid option: -$OPTARG" >&2
         exit 1
-        ;;
-    esac
-done
-
-# Check if the -f flag is there, if not or if no folder was specified, print usage
-if [[ $ff != true ]] || [ -z "$fn" ]; then
-    print_usage
-    exit 1
-fi
-
-# check if the specified folder exists
-if [ ! -d "$fn" ]; then
-    echo "Error: \"$fn\" is not a valid directory"
-    exit 1
-fi
-
-# Determine include directory
-if [[ $local_include ]]; then
-    li="$fn/"
-else
-    li="Libraries/Text/"
-fi
-
-# Command to assemble and link the file
-nasm -f elf64 -I "$li" -o "$fn/$fn.o" "$fn/main.asm" && ld -m elf_x86_64 -o "$fn/$fn" "$fn/$fn.o" && "$fn/$fn"
-
-# Capture the exit code of the compiled program
-exit_code=$?
-if [[ $exit_code -ne 0 ]]; then
-    echo "Exit Code: $exit_code"
-fi
-
-# Cleanup object file
-if [[ -f "$fn/$fn.o" ]]; then
-    rm "$fn/$fn.o"
-fi
-
-# Handle output binary
-if [[ -f "$fn/$fn" ]]; then
-    if [[ $remove_output ]]; then
-        rm "$fn/$fn"
-    else
-        mkdir -p Build
-        mv "$fn/$fn" Build/
     fi
-fi
+}
+
+# Function to check if the specified folder exists
+function check_folder_exists() {
+    if [ ! -d "$folder_name" ]; then
+        echo "Error: \"$folder_name\" is not a valid directory."
+        exit 1
+    fi
+}
+
+# Function to set include path
+function set_include_path() {
+    include_path="Libraries/Text/"
+    if [[ $local_include == true ]]; then
+        include_path="$folder_name/"
+    fi
+}
+
+# Function to assemble and link the program
+function assemble_and_link() {
+    nasm_opts="-f elf64 -I \"$include_path\""
+    ld_opts="-m elf_x86_64"
+    if [[ $debug == true ]]; then
+        nasm_opts="$nasm_opts -g"
+        ld_opts="$ld_opts -g"
+    fi
+
+    if [[ $optimize_size == true ]]; then
+        nasm_opts="$nasm_opts -O0"
+        ld_opts="$ld_opts -s"  # Strip symbol information to reduce size
+    fi
+
+    echo "Assembling and linking..."
+    nasm $nasm_opts -o "$folder_name/$folder_name.o" "$folder_name/main.asm"
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Assembly failed." >&2
+        exit 1
+    fi
+
+    ld $ld_opts -o "$folder_name/$folder_name" "$folder_name/$folder_name.o"
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Linking failed." >&2
+        exit 1
+    fi
+
+    if [[ $verbose == true ]]; then
+        echo "Assembly and linking completed successfully."
+    fi
+}
+
+# Function to run the compiled program
+function run_program() {
+    if [[ $auto_run == true ]]; then
+        if [[ $debug == true ]]; then
+            if [[ $run_strace == true ]]; then
+                echo -e "Running with strace...\n"
+                strace -f -o "$folder_name/strace.log" ./"$folder_name/$folder_name"
+            else
+                echo -e "Running with GDB...\n"
+                gdb -q "$folder_name/$folder_name"
+            fi
+        else
+            if [[ $run_strace == true ]]; then
+                echo -e "Running with strace...\n"
+                strace -f -o "$folder_name/strace.log" ./"$folder_name/$folder_name"
+            else
+                echo -e "Running...\n"
+                ./"$folder_name/$folder_name"
+            fi
+        fi
+    fi
+}
+
+# Function to handle cleanup
+function cleanup() {
+    # Capture the exit code of the compiled program
+    exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        echo "Exit Code: $exit_code"
+    fi
+
+    # Cleanup object file
+    if [[ -f "$folder_name/$folder_name.o" ]]; then
+        rm "$folder_name/$folder_name.o"
+    fi
+
+    # Handle output binary
+    if [[ -f "$folder_name/$folder_name" ]]; then
+        if [[ $remove_output == true ]]; then
+            rm "$folder_name/$folder_name"
+        else
+            mkdir -p "${output_dir:-Build}"
+            mv "$folder_name/$folder_name" "${output_dir:-Build}/"
+        fi
+    fi
+}
+
+# Main script logic
+function main() {
+    check_required_tools
+    parse_options "$@"
+    check_folder_exists
+    set_include_path
+    assemble_and_link
+    run_program
+    cleanup
+}
+
+# Invoke the main function
+main "$@"
