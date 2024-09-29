@@ -1,29 +1,32 @@
-; File: Hello World/main.asm
-%include "Libraries/Data/constants.asm"
-%include "Libraries/Data/variables.asm"
-%include "Libraries/Text/file_api.asm"
-%include "Libraries/Text/functions.asm"
+; main.asm
+%include "Lib/file.asm"
+%include "Lib/text.asm"
+%include "Lib/data.asm"
 
 section .text
-    global _start
+global _start
 
 _start:
-    mov rdi, file_path          
-    mov rsi, O_CREAT | O_WRONLY
-    mov rdx, S_IWUSR | S_IRUSR
-    call file_open              
-    mov rbx, rax        ; Save file descriptor
+    ; Create a file
+    mov     rdi, file_path                  ; RDI: pointer to file path
+    mov     rsi, O_CREAT | O_WRONLY         ; RSI: flags
+    mov     rdx, S_IRUSR | S_IWUSR          ; RDX: mode
+    call    file_open                       ; RAX: file descriptor
+    mov     rbx, rax                        ; Save file descriptor
 
-    mov rsi, hello_msg
-    call strlen
-    mov rdx, rax
-    mov rdi, rbx
-    mov rsi, hello_msg
-    call file_write
+    ; Write message too file
+    mov     rsi, hello_msg                  ; RSI: pointer to string
+    call    strlen                          ; RAX: length
+    mov     rdx, rax                        ; RDX: length
+    mov     rdi, rbx                        ; RDI: file descriptor
+    mov     rsi, hello_msg                  ; RSI: pointer to string
+    call    file_write                      ; Write to file
 
-    mov rdi, rbx
-    call file_close
+    ; Close the file
+    mov     rdi, rbx                        ; RDI: file descriptor
+    call    file_close
 
-    mov rax, SYS_EXIT
-    xor rdi, rdi
+    ; Exit program
+    mov     rax, SYS_EXIT                   ; System call number for exit
+    xor     rdi, rdi                        ; Exit code 0
     syscall
