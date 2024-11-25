@@ -1,46 +1,69 @@
 # Assembly(x64) Language Programs
 
-This repository contains a collection of assembly language programs to help me learn assembly. It also includes scripts for assembling, linking, and executing the programs.
+This repository contains a collection of x86-64 assembly language programs designed for learning and experimentation. It also includes a comprehensive shell script for assembling, linking, and executing these programs.
 
 ## File Structure
 
-- **Program_Name**: Folders containing the assembly source code and other project files for each program. Each folder should contain a `main.asm` file which is the entry point for the program.
-- **.gitignore**: A file specifying files and directories to ignore when using git.
-- **compile**: A shell script for assembling, linking, and executing the program(s).
-- **README.md**: This file
+- **Program_Name**: Folders containing the assembly source code and other project files for each program. Each folder must contain a `main.asm` file, which serves as the entry point for the program.
+- **.gitignore**: Specifies files and directories to ignore when using Git.
+- **compile**: A shell script for assembling, linking, and executing assembly programs.
+- **README.md**: This file.
 
-## How to Use
+## Prerequisites
 
-1. Make sure you have **NASM**, **ld**, **gdb**, and **strace** installed on your machine.
-2. Run the `compile` script with the `-f` option followed by the name of the folder containing the assembly source code.
-3. The script will assemble, link, and execute the program. The output will be stored in the **Builds** folder unless the `-d` flag is passed to remove the output after execution.
+Ensure the following tools are installed on your system:
+- `nasm`: The Netwide Assembler for assembling the `.asm` files.
+- `ld`: The GNU linker for linking object files.
+- `gdb`: The GNU Debugger, if debugging is needed.
+- `strace`: A system call tracer for Linux systems.
 
-### Options for `compile` script
+## Usage
 
-- `-d`: This option is used to remove the output file after execution.
-- `-h`: Show the help message.
-- `-i`: Include the local directory in the search path.
-- `-g`: Compile with debugging information.
-- `-t`: Run the compiled program with `strace`, if auto-run is enabled; takes precedence over GDB if both are enabled.
-- `-r`: Automatically run the compiled program if debugging is enabled; will run with GDB.
-- `-v`: Enable verbose mode.
-- `-s`: Optimize the output file size.
-- `-o`: Specify a custom output directory.
-- `-f`: Folder name containing the assembly file to be compiled.
+Run the `compile` script with appropriate options to assemble, link, and execute a program. At a minimum, you must provide the `-f` option followed by the name of the folder containing the assembly source code.
 
-#### Example
+### Script Options
+
+- `-f <folder_name>`: **Required**. Specifies the folder containing the assembly file to be compiled. This folder must include a `main.asm` file.
+- `-d`: Removes the output binary file after execution.
+- `-h`: Displays the help message with detailed usage instructions.
+- `-i`: Includes the local directory (the folder specified with `-f`) in the search path for libraries.
+- `-g`: Compiles with debugging information included.
+- `-t`: Runs the program with `strace` if auto-run is enabled. Takes precedence over `GDB` if both are enabled.
+- `-r`: Automatically runs the compiled program after linking. Uses `GDB` for debugging if `-g` is specified.
+- `-v`: Enables verbose output, providing more details during execution.
+- `-s`: Optimizes the output file size by stripping symbol information.
+- `-o <output_dir>`: Specifies a custom directory for storing the compiled binary. Defaults to a `Build` folder if not provided.
+
+### Example
 
 ```sh
-./compile -f "Hello World"
+./compile -f "HelloWorld"
 ```
 
-this would assemble and link the main.asm file in the `Hello World` folder and execute it. the output binary file will be stored in the **Builds** folder aslong as the `-d` flag is not passed.
+This command assembles and links the `main.asm` file in the `HelloWorld` folder, and the output binary is stored in the `Build` folder (unless the `-d` flag is used).
+
+To enable debugging and run the program automatically with `GDB`, use:
+
+```sh
+./compile -f "HelloWorld" -g -r
+```
+
+To include a local library path and optimize the binary size:
+
+```sh
+./compile -f "HelloWorld" -i -s
+```
+
+### Outputs
+
+- By default, the compiled binary will be saved in the `Build` folder. If a custom directory is specified using the `-o` option, the binary will be moved there.
+- If the `-d` option is used, the binary will be deleted after execution.
+- If `-t` is used, system calls will be logged to a file named `strace.log` in the specified folder.
 
 ### License
 
-- This program is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
 
 ### Disclaimer
 
-- These programs are for educational purposes only. The author of these programs is not responsible for any damages that may result from the use of these programs.
-- If you wish to execute any of these scripts, please make sure you understand the code that is being run.
+These programs are for educational purposes only. Ensure you understand the code being executed. The author assumes no responsibility for any misuse or damages arising from the use of this code.
